@@ -1,12 +1,14 @@
 // ZIL Kiosk Service Worker - Offline Cache
-const CACHE_NAME = 'zil-kiosk-v1';
+const CACHE_NAME = 'zil-kiosk-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.json',
-  './assets/arizona-state-university-logo-vertical.png'
+  './assets/arizona-state-university-logo-vertical.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {

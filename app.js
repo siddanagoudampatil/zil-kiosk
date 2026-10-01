@@ -560,26 +560,36 @@ async function handleWarningUnderstood() {
       // 2. Lookup & update person record: increment missedCheckoutCount
       const personReq = peopleStore.get(email);
       personReq.onsuccess = () => {
-        let person = personReq.result;
-        if (!person) {
-          person = {
-            email: email,
-            name: name,
-            missedCheckoutCount: 1,
-            lastVisitAt: new Date().toISOString()
-          };
-        } else {
-          person.name = name;
-          person.missedCheckoutCount = (person.missedCheckoutCount || 0) + 1;
-          person.lastVisitAt = new Date().toISOString();
+        try {
+          const keyProp = peopleStore.keyPath || "email";
+          let person = personReq.result;
+          if (!person) {
+            person = {
+              email: email,
+              asuId_or_email: email,
+              name: name,
+              missedCheckoutCount: 1,
+              lastVisitAt: new Date().toISOString()
+            };
+          } else {
+            person.name = name;
+            person.email = email;
+            person.asuId_or_email = email;
+            person.missedCheckoutCount = (person.missedCheckoutCount || 0) + 1;
+            person.lastVisitAt = new Date().toISOString();
+          }
+          person[keyProp] = email;
+          peopleStore.put(person);
+        } catch (err) {
+          console.error("Failed to update person record in peopleStore:", err);
         }
-        peopleStore.put(person);
       };
 
       // 3. Add new active visit record
       const newVisit = {
         name: name,
         email: email,
+        asuId_or_email: email,
         room: room,
         checkInAt: new Date().toISOString(),
         checkOutAt: null,
@@ -610,25 +620,35 @@ async function completeCheckIn({ name, email, room }) {
     // Update people store
     const personReq = peopleStore.get(email);
     personReq.onsuccess = () => {
-      let person = personReq.result;
-      if (!person) {
-        person = {
-          email: email,
-          name: name,
-          missedCheckoutCount: 0,
-          lastVisitAt: new Date().toISOString()
-        };
-      } else {
-        person.name = name;
-        person.lastVisitAt = new Date().toISOString();
+      try {
+        const keyProp = peopleStore.keyPath || "email";
+        let person = personReq.result;
+        if (!person) {
+          person = {
+            email: email,
+            asuId_or_email: email,
+            name: name,
+            missedCheckoutCount: 0,
+            lastVisitAt: new Date().toISOString()
+          };
+        } else {
+          person.name = name;
+          person.email = email;
+          person.asuId_or_email = email;
+          person.lastVisitAt = new Date().toISOString();
+        }
+        person[keyProp] = email;
+        peopleStore.put(person);
+      } catch (err) {
+        console.error("Failed to update person record in peopleStore:", err);
       }
-      peopleStore.put(person);
     };
 
     // Add new visit
     const newVisit = {
       name: name,
       email: email,
+      asuId_or_email: email,
       room: room,
       checkInAt: new Date().toISOString(),
       checkOutAt: null,
