@@ -54,19 +54,19 @@ check-in-out-system/
 ├── assets/
 │   └── arizona-state-university-logo-vertical.png   # Downloaded ASU header logo
 └── icons/
-    ├── icon-192.png         # [Place user-provided 192x192 PNG icon here]
-    └── icon-512.png         # [Place user-provided 512x512 PNG icon here]
+    ├── icon-192.png         # PWA home screen icon (192x192 PNG)
+    └── icon-512.png         # PWA home screen icon (512x512 PNG)
 ```
 
 ---
 
 ## Icon Files
 
-The web app manifest references home screen icons at:
+The web app manifest includes home screen icons:
 - `icons/icon-192.png` (192x192 pixels)
 - `icons/icon-512.png` (512x512 pixels)
 
-Place your custom 192x192 and 512x512 PNG icon files directly into the `/icons/` directory. If they are not yet provided, the app will continue to function normally offline.
+Both icons are pre-cached by the Service Worker for offline iPad display.
 
 ---
 
