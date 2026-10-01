@@ -390,10 +390,14 @@ async function handleCheckInSubmit(event) {
   const errEl = document.getElementById("checkin-validation-error");
   errEl.classList.add("hidden");
 
-  // Read and trim inputs
-  const nameInput = document.getElementById("checkin-name").value.trim();
-  const emailInput = document.getElementById("checkin-email").value.trim();
-  const roomInput = document.getElementById("checkin-room").value;
+  // Read and trim inputs safely
+  const nameEl = document.getElementById("checkin-name");
+  const emailEl = document.getElementById("checkin-email") || document.getElementById("checkin-asuid");
+  const roomEl = document.getElementById("checkin-room");
+
+  const nameInput = nameEl ? nameEl.value.trim() : "";
+  const emailInput = emailEl ? emailEl.value.trim() : "";
+  const roomInput = roomEl ? roomEl.value : "";
 
   // Validate inputs
   if (!nameInput) {

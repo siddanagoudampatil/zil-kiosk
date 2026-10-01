@@ -108,7 +108,11 @@
             required 
             autocomplete="email"
             autocapitalize="none"
+            oninput="if(document.getElementById('checkin-asuid')) document.getElementById('checkin-asuid').value = this.value;"
           >
+          <!-- Backwards-compatibility fallbacks for cached scripts -->
+          <input type="hidden" id="checkin-asuid">
+          <input type="hidden" id="checkin-purpose" value="Studio Visit">
         </div>
 
         <div class="form-group">
@@ -402,6 +406,6 @@
 
   </main>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>
