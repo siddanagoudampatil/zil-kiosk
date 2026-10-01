@@ -267,7 +267,7 @@ function handleInactivityTimeout() {
 }
 
 function setupInactivityListeners() {
-  const activityEvents = ["touchstart", "pointerdown", "mousedown", "keydown", "scroll"];
+  const activityEvents = ["touchstart", "pointerdown", "mousedown", "keydown", "input", "click", "scroll"];
   activityEvents.forEach((evt) => {
     window.addEventListener(evt, resetInactivityTimer, { passive: true });
   });
