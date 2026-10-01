@@ -400,6 +400,15 @@
             <input type="file" id="input-restore-file" accept=".json,application/json" class="visually-hidden">
             <div id="restore-status-message" class="restore-status"></div>
           </div>
+
+          <div class="backup-card">
+            <h4 class="backup-card-title">Reset Database</h4>
+            <p class="backup-card-desc">Clear all active sessions, visit history, and visitor records from this device.</p>
+            <button type="button" id="btn-clear-db" class="btn-kiosk btn-secondary" style="border-color: var(--color-error); color: var(--color-error);">
+              Clear All Data
+            </button>
+            <div id="clear-db-status" class="restore-status"></div>
+          </div>
         </div>
       </div>
     </section>

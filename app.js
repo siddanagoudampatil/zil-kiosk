@@ -1493,6 +1493,27 @@ function setupEventListeners() {
   document.getElementById("btn-export-csv")?.addEventListener("click", exportDataAsCsv);
   document.getElementById("btn-export-json")?.addEventListener("click", exportDataAsJson);
   document.getElementById("input-restore-file")?.addEventListener("change", handleRestoreFile);
+
+  // Clear / Reset Database Button
+  document.getElementById("btn-clear-db")?.addEventListener("click", async () => {
+    const confirmed = confirm(
+      "Are you sure you want to clear all visit records and visitor history from this device? This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    try {
+      await runAtomicTransaction(["visits", "people", "meta"], "readwrite", (tx) => {
+        tx.objectStore("visits").clear();
+        tx.objectStore("people").clear();
+        tx.objectStore("meta").clear();
+      });
+      alert("Database has been completely cleared.");
+      location.reload();
+    } catch (err) {
+      console.error("Failed to clear database:", err);
+      showSystemError("Failed to clear database: " + err.message);
+    }
+  });
 }
 
 // ==========================================================================
