@@ -681,42 +681,52 @@ input, textarea, select {
 
 .inspect-toggle-buttons {
   display: flex;
-  background: var(--asu-gray-subtle);
-  padding: 6px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--asu-gray-light);
-  gap: 8px;
+  gap: 16px;
+  margin-top: 8px;
 }
 
 .btn-toggle {
   flex: 1;
-  min-height: 48px;
-  font-size: 1.15rem;
+  min-height: 56px;
+  font-size: 1.2rem;
   font-weight: 700;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: transparent;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--asu-gray-light);
+  background: var(--asu-white);
   color: var(--asu-gray-dark);
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
   transition: all 0.15s ease;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  padding: 12px 18px;
 }
 
-.btn-toggle.active {
-  background: var(--asu-white);
-  color: var(--color-success);
-  border-color: #86EFAC;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+.btn-toggle:hover {
+  border-color: var(--asu-gray-mid);
+  background-color: var(--asu-gray-subtle);
+}
+
+.btn-toggle:active {
+  transform: scale(0.97);
+}
+
+#btn-damage-no.active {
+  background-color: #F0FDF4;
+  color: #15803D;
+  border-color: #16A34A;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.2);
   font-weight: 800;
 }
 
 #btn-damage-yes.active {
-  background: var(--color-error);
-  border-color: var(--color-error);
-  color: var(--asu-white);
-  box-shadow: 0 2px 6px rgba(185, 28, 28, 0.25);
+  background-color: #FEF2F2;
+  color: #B91C1C;
+  border-color: #DC2626;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.22);
+  font-weight: 800;
 }
 
 /* Modal Actions inside Inspection Modal */
