@@ -48,10 +48,10 @@ let confirmationTimer = null;
 /**
  * Initializes IndexedDB schema and upgrades if needed.
  * Stores:
- * - visits: id (autoIncrement), name, asuId_or_email, room, purpose,
+ * - visits: id (autoIncrement), name, email, room,
  *           checkInAt, checkOutAt, status, damage, damageNotes,
  *           warningShown
- * - people: asuId_or_email (keyPath), name, missedCheckoutCount, lastVisitAt
+ * - people: email (keyPath), name, missedCheckoutCount, lastVisitAt
  * - meta: key (keyPath), value
  */
 function initDatabase() {
@@ -67,15 +67,20 @@ function initDatabase() {
           keyPath: "id",
           autoIncrement: true
         });
-        visitStore.createIndex("asuId_or_email", "asuId_or_email", { unique: false });
+        visitStore.createIndex("email", "email", { unique: false });
         visitStore.createIndex("status", "status", { unique: false });
         visitStore.createIndex("room", "room", { unique: false });
         visitStore.createIndex("checkInAt", "checkInAt", { unique: false });
+      } else {
+        const visitStore = event.target.transaction.objectStore("visits");
+        if (!visitStore.indexNames.contains("email")) {
+          visitStore.createIndex("email", "email", { unique: false });
+        }
       }
 
-      // People Store (keyed by normalized asuId_or_email)
+      // People Store (keyed by email)
       if (!database.objectStoreNames.contains("people")) {
-        database.createObjectStore("people", { keyPath: "asuId_or_email" });
+        database.createObjectStore("people", { keyPath: "email" });
       }
 
       // Meta Store (keyed by string key)
@@ -372,6 +377,12 @@ function resetCheckInForm() {
   }
 }
 
+/** Helper to get normalized visitor email from a record */
+function getVisitorEmail(v) {
+  if (!v) return "";
+  return (v.email || v.asuId_or_email || "").trim().toLowerCase();
+}
+
 /** Form submission handler */
 async function handleCheckInSubmit(event) {
   event.preventDefault();
@@ -381,25 +392,20 @@ async function handleCheckInSubmit(event) {
 
   // Read and trim inputs
   const nameInput = document.getElementById("checkin-name").value.trim();
-  const idInput = document.getElementById("checkin-asuid").value.trim();
+  const emailInput = document.getElementById("checkin-email").value.trim();
   const roomInput = document.getElementById("checkin-room").value;
-  const purposeInput = document.getElementById("checkin-purpose").value.trim();
 
   // Validate inputs
   if (!nameInput) {
     showFormError(errEl, "Please enter your full name.");
     return;
   }
-  if (!idInput) {
-    showFormError(errEl, "Please enter your ASU ID or email address.");
+  if (!emailInput || !emailInput.includes("@") || !emailInput.includes(".")) {
+    showFormError(errEl, "Please enter a valid email address.");
     return;
   }
   if (!roomInput || !ROOMS.includes(roomInput)) {
     showFormError(errEl, "Please select a valid studio from the dropdown.");
-    return;
-  }
-  if (!purposeInput) {
-    showFormError(errEl, "Please enter the purpose of your visit.");
     return;
   }
 
@@ -407,7 +413,7 @@ async function handleCheckInSubmit(event) {
   submitBtn.disabled = true;
   submitBtn.textContent = "Checking...";
 
-  const normalizedId = idInput.toLowerCase();
+  const normalizedEmail = emailInput.toLowerCase();
 
   try {
     const allVisits = await getAllRecords("visits");
@@ -415,7 +421,7 @@ async function handleCheckInSubmit(event) {
     // Check 1: Duplicate active check-in rule:
     // Prevent duplicate active check-ins for the same person (offer to check out instead).
     const activeVisit = allVisits.find((v) => {
-      return v.asuId_or_email === normalizedId && v.status === "active";
+      return getVisitorEmail(v) === normalizedEmail && v.status === "active";
     });
 
     if (activeVisit) {
@@ -432,7 +438,7 @@ async function handleCheckInSubmit(event) {
     const missedVisit = allVisits
       .filter((v) => {
         return (
-          v.asuId_or_email === normalizedId &&
+          getVisitorEmail(v) === normalizedEmail &&
           (v.status === "missed_checkout" || v.status === "active") &&
           v.warningShown !== true
         );
@@ -443,9 +449,8 @@ async function handleCheckInSubmit(event) {
       // Store pending check-in parameters to execute after user taps "I understand"
       pendingCheckInData = {
         name: nameInput,
-        asuId_or_email: normalizedId,
+        email: normalizedEmail,
         room: roomInput,
-        purpose: purposeInput,
         missedVisit: missedVisit
       };
 
@@ -458,9 +463,8 @@ async function handleCheckInSubmit(event) {
     // Direct Check In (no missed checkouts)
     await completeCheckIn({
       name: nameInput,
-      asuId_or_email: normalizedId,
-      room: roomInput,
-      purpose: purposeInput
+      email: normalizedEmail,
+      room: roomInput
     });
 
   } catch (error) {
@@ -534,7 +538,7 @@ async function handleWarningUnderstood() {
     return;
   }
 
-  const { name, asuId_or_email, room, purpose, missedVisit } = pendingCheckInData;
+  const { name, email, room, missedVisit } = pendingCheckInData;
 
   try {
     // Atomic transaction across visits and people
@@ -550,12 +554,12 @@ async function handleWarningUnderstood() {
       }
 
       // 2. Lookup & update person record: increment missedCheckoutCount
-      const personReq = peopleStore.get(asuId_or_email);
+      const personReq = peopleStore.get(email);
       personReq.onsuccess = () => {
         let person = personReq.result;
         if (!person) {
           person = {
-            asuId_or_email: asuId_or_email,
+            email: email,
             name: name,
             missedCheckoutCount: 1,
             lastVisitAt: new Date().toISOString()
@@ -571,9 +575,8 @@ async function handleWarningUnderstood() {
       // 3. Add new active visit record
       const newVisit = {
         name: name,
-        asuId_or_email: asuId_or_email,
+        email: email,
         room: room,
-        purpose: purpose,
         checkInAt: new Date().toISOString(),
         checkOutAt: null,
         status: "active",
@@ -595,18 +598,18 @@ async function handleWarningUnderstood() {
 }
 
 /** Standard check in completion (without warning) */
-async function completeCheckIn({ name, asuId_or_email, room, purpose }) {
+async function completeCheckIn({ name, email, room }) {
   await runAtomicTransaction(["visits", "people"], "readwrite", (tx) => {
     const visitStore = tx.objectStore("visits");
     const peopleStore = tx.objectStore("people");
 
     // Update people store
-    const personReq = peopleStore.get(asuId_or_email);
+    const personReq = peopleStore.get(email);
     personReq.onsuccess = () => {
       let person = personReq.result;
       if (!person) {
         person = {
-          asuId_or_email: asuId_or_email,
+          email: email,
           name: name,
           missedCheckoutCount: 0,
           lastVisitAt: new Date().toISOString()
@@ -621,9 +624,8 @@ async function completeCheckIn({ name, asuId_or_email, room, purpose }) {
     // Add new visit
     const newVisit = {
       name: name,
-      asuId_or_email: asuId_or_email,
+      email: email,
       room: room,
-      purpose: purpose,
       checkInAt: new Date().toISOString(),
       checkOutAt: null,
       status: "active",
@@ -654,7 +656,7 @@ async function loadActiveVisitors(searchFilter = "") {
     if (!query) return true;
     return (
       v.name.toLowerCase().includes(query) ||
-      v.asuId_or_email.toLowerCase().includes(query) ||
+      getVisitorEmail(v).includes(query) ||
       v.room.toLowerCase().includes(query)
     );
   });
@@ -997,10 +999,9 @@ async function renderStaffActiveSessions() {
       <thead>
         <tr>
           <th>Name</th>
-          <th>ASU ID / Email</th>
+          <th>Email</th>
           <th>Studio</th>
           <th>Check-in Time</th>
-          <th>Purpose</th>
           <th>Action</th>
         </tr>
       </thead>
@@ -1017,10 +1018,9 @@ async function renderStaffActiveSessions() {
     html += `
       <tr>
         <td><strong>${escapeHtml(visit.name)}</strong></td>
-        <td>${escapeHtml(visit.asuId_or_email)}</td>
+        <td>${escapeHtml(getVisitorEmail(visit))}</td>
         <td>${escapeHtml(visit.room)}</td>
         <td>${timeFormatted}</td>
-        <td>${escapeHtml(visit.purpose)}</td>
         <td>
           <button type="button" class="btn-table-action btn-maroon" data-visit-id="${visit.id}">
             Force Check Out
@@ -1097,7 +1097,7 @@ async function renderStaffDamageReports() {
         <div class="damage-card-room">${escapeHtml(visit.room)}</div>
         <div class="damage-card-date">${dateFormatted}</div>
       </div>
-      <div class="damage-card-user">Reported by: ${escapeHtml(visit.name)} (${escapeHtml(visit.asuId_or_email)})</div>
+      <div class="damage-card-user">Reported by: ${escapeHtml(visit.name)} (${escapeHtml(getVisitorEmail(visit))})</div>
       <div class="damage-card-notes">${escapeHtml(visit.damageNotes || "No details provided")}</div>
     `;
     container.appendChild(card);
@@ -1116,18 +1116,20 @@ async function renderStaffOffenders() {
   const missedCountsByPerson = {};
   allVisits.forEach((v) => {
     if (v.status === "missed_checkout") {
-      missedCountsByPerson[v.asuId_or_email] = (missedCountsByPerson[v.asuId_or_email] || 0) + 1;
+      const emailKey = getVisitorEmail(v);
+      missedCountsByPerson[emailKey] = (missedCountsByPerson[emailKey] || 0) + 1;
     }
   });
 
   // Merge counts
   const offenders = people
     .map((p) => {
-      const visitCount = missedCountsByPerson[p.asuId_or_email] || 0;
+      const emailKey = getVisitorEmail(p);
+      const visitCount = missedCountsByPerson[emailKey] || 0;
       const count = Math.max(p.missedCheckoutCount || 0, visitCount);
       return {
         name: p.name,
-        asuId_or_email: p.asuId_or_email,
+        email: emailKey,
         missedCheckoutCount: count,
         lastVisitAt: p.lastVisitAt
       };
@@ -1145,7 +1147,7 @@ async function renderStaffOffenders() {
       <thead>
         <tr>
           <th>Visitor Name</th>
-          <th>ASU ID / Email</th>
+          <th>Email</th>
           <th>Missed Checkouts</th>
           <th>Last Visit</th>
         </tr>
@@ -1165,7 +1167,7 @@ async function renderStaffOffenders() {
     html += `
       <tr>
         <td><strong>${escapeHtml(p.name)}</strong></td>
-        <td>${escapeHtml(p.asuId_or_email)}</td>
+        <td>${escapeHtml(p.email)}</td>
         <td><strong>${p.missedCheckoutCount}</strong></td>
         <td>${lastVisitFormatted}</td>
       </tr>
@@ -1187,9 +1189,8 @@ async function exportDataAsCsv() {
   const headers = [
     "id",
     "name",
-    "asuId_or_email",
+    "email",
     "room",
-    "purpose",
     "checkInAt",
     "checkOutAt",
     "status",
@@ -1202,7 +1203,7 @@ async function exportDataAsCsv() {
 
   visits.forEach((v) => {
     const row = headers.map((key) => {
-      const val = v[key];
+      const val = (key === "email") ? getVisitorEmail(v) : v[key];
       if (val === null || val === undefined) return '""';
       const escaped = String(val).replace(/"/g, '""');
       return `"${escaped}"`;

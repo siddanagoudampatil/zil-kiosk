@@ -20,8 +20,8 @@ A simple, offline-first check-in/check-out kiosk web application built for the Z
   3. Studio 3 (Room 135) - Streaming Studio
   4. Studio 4 (Room 140) - Zoom Innovation Lab
 - **Data Model (IndexedDB)**:
-  - `visits`: Stores visit records with `id`, `name`, `asuId_or_email`, `room`, `purpose`, `checkInAt`, `checkOutAt`, `status`, `damage`, `damageNotes`, `warningShown`.
-  - `people`: Keyed by `asuId_or_email` tracking `name`, `missedCheckoutCount`, and `lastVisitAt`.
+  - `visits`: Stores visit records with `id`, `name`, `email`, `room`, `checkInAt`, `checkOutAt`, `status`, `damage`, `damageNotes`, `warningShown`.
+  - `people`: Keyed by `email` tracking `name`, `missedCheckoutCount`, and `lastVisitAt`.
   - `meta`: Key-value store tracking `lastBackupAt` and settings.
 - **Check-In Validation & Missed Checkout Warning**:
   - Automatically flags previous-calendar-day active sessions as `missed_checkout` on app load.
