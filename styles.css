@@ -681,32 +681,75 @@ input, textarea, select {
 
 .inspect-toggle-buttons {
   display: flex;
-  gap: 16px;
+  background: var(--asu-gray-subtle);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--asu-gray-light);
+  gap: 8px;
 }
 
 .btn-toggle {
   flex: 1;
-  min-height: 58px;
-  font-size: 1.35rem;
-  font-weight: 800;
-  border-radius: var(--radius-md);
-  border: 2px solid var(--asu-gray-mid);
-  background: var(--asu-white);
-  color: var(--asu-black);
+  min-height: 48px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--asu-gray-dark);
   cursor: pointer;
   transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-toggle.active {
-  background: var(--asu-maroon);
-  color: var(--asu-white);
-  border-color: var(--asu-maroon);
+  background: var(--asu-white);
+  color: var(--color-success);
+  border-color: #86EFAC;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  font-weight: 800;
 }
 
 #btn-damage-yes.active {
   background: var(--color-error);
   border-color: var(--color-error);
   color: var(--asu-white);
+  box-shadow: 0 2px 6px rgba(185, 28, 28, 0.25);
+}
+
+/* Modal Actions inside Inspection Modal */
+.inspect-modal .modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.inspect-modal .btn-checkout-primary {
+  width: 100%;
+  min-height: 64px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.inspect-modal .btn-checkout-cancel {
+  width: 100%;
+  min-height: 48px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  background: transparent;
+  border: 2px solid var(--asu-gray-light);
+  color: var(--asu-gray-dark);
+  border-radius: var(--radius-md);
+}
+
+.inspect-modal .btn-checkout-cancel:active {
+  background: var(--asu-gray-subtle);
+  border-color: var(--asu-gray-mid);
 }
 
 /* ==========================================================================
