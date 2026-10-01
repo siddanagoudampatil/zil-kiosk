@@ -83,14 +83,54 @@ Open `http://localhost:8000` in Safari or Chrome.
 
 ---
 
-## Hosting (Production)
+## Hosting on GitHub Pages (Recommended)
 
-The kiosk requires **HTTPS** to enable the Service Worker, PWA installation, and Persistent Storage APIs.
+GitHub Pages provides free, automatic HTTPS hosting, which is required for PWAs, Service Workers, and iPad Home Screen installation.
 
-You can host these static files on any static hosting provider:
-- **GitHub Pages**: Push this directory to a GitHub repository, go to **Settings > Pages**, and set the source branch to `main`.
-- **Cloudflare Pages / Netlify / Vercel**: Connect your repository or drag-and-drop the directory for instant SSL deployment.
-- **ASU Internal Static Web Server**: Ensure the server serves files with HTTPS enabled.
+### Step 1: Create a Repository on GitHub
+1. Log in to [GitHub](https://github.com).
+2. Click the **+** (plus) icon in the top-right corner and select **New repository**.
+3. Name your repository (for example: `zil-kiosk` or `check-in-out-system`).
+4. Choose **Public** (or **Private** if you have a GitHub Pro / Enterprise account that supports private Pages).
+5. **Do not** check "Initialize this repository with a README" (your local project already has one).
+6. Click **Create repository**.
+
+### Step 2: Push Local Code to GitHub
+In your terminal, within this project directory:
+
+```bash
+# 1. Add your GitHub repository as the remote origin
+# (Replace YOUR_USERNAME and YOUR_REPO with your actual GitHub username and repo name)
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+
+# 2. Push the main branch
+git push -u origin main
+```
+
+### Step 3: Enable GitHub Pages
+1. Go to your repository on GitHub.
+2. Click **Settings** (gear tab near the top).
+3. In the left sidebar, click **Pages** (under the "Code and automation" section).
+4. Under **Build and deployment**:
+   - **Source**: Select `Deploy from a branch`.
+   - **Branch**: Select `main` from the dropdown, and leave the folder as `/(root)`.
+5. Click **Save**.
+6. Wait 1–2 minutes for GitHub Actions to build and deploy. Refresh the Pages settings page until you see:
+   > *"Your site is live at `https://YOUR_USERNAME.github.io/YOUR_REPO/`"*
+
+### Step 4: Open on iPad and Install
+1. Open **Safari** on the iPad and go to `https://YOUR_USERNAME.github.io/YOUR_REPO/`.
+2. Tap the **Share** button (box with upward arrow) and select **Add to Home Screen**.
+3. Follow the Guided Access setup below to lock the iPad in kiosk mode.
+
+### Future Updates
+Whenever you make changes to files:
+```bash
+git add .
+git commit -m "Describe your update"
+git push
+```
+GitHub Pages will automatically rebuild and publish the update within 1–2 minutes. Due to the Service Worker caching, devices will receive the update automatically on their next refresh.
 
 ---
 
