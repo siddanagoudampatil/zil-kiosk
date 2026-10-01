@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Zoom Innovation Lab - Check-In/Out</title>
+  
+  <!-- PWA & Apple iPad Kiosk Settings -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8C1D40">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ZIL Kiosk">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- System Error Banner (For IndexedDB or storage errors) -->
+  <div id="system-error-banner" class="system-error-banner hidden" role="alert">
+    <div class="error-content">
+      <span class="error-title">Database Error:</span>
+      <span id="system-error-message">An error occurred while saving data.</span>
+    </div>
+    <button type="button" id="btn-dismiss-error" class="btn-text">Dismiss</button>
+  </div>
+
+  <!-- Global ASU & ZIL Header -->
+  <header class="app-header">
+    <div class="header-brand-bar">
+      <div class="header-logo-container">
+        <img 
+          src="assets/arizona-state-university-logo-vertical.png" 
+          alt="Arizona State University logo" 
+          class="asu-logo"
+        >
+      </div>
+      <div class="header-titles">
+        <h1 class="header-title">Zoom Innovation Lab</h1>
+        <p class="header-subtitle">Creativity Commons &bull; Tempe</p>
+      </div>
+      <div class="header-clock" id="header-clock">--:-- --</div>
+    </div>
+    <div class="header-gold-line"></div>
+  </header>
+
+  <!-- Main Kiosk Container -->
+  <main class="kiosk-container">
+
+    <!-- SCREEN 1: HOME -->
+    <section id="screen-home" class="kiosk-screen active">
+      <div class="home-hero">
+        <h2 class="home-tagline">Where ideas take shape</h2>
+        <p class="home-instruction">Please check in when starting your studio session and check out before you leave.</p>
+      </div>
+
+      <div class="home-actions">
+        <button type="button" id="btn-home-checkin" class="btn-kiosk btn-maroon">
+          Check In
+        </button>
+        <button type="button" id="btn-home-checkout" class="btn-kiosk btn-gold">
+          Check Out
+        </button>
+      </div>
+
+      <div class="home-footer">
+        <button type="button" id="btn-home-staff-access" class="btn-staff-link">
+          Staff Access
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 2: CHECK IN FORM -->
+    <section id="screen-checkin" class="kiosk-screen hidden">
+      <div class="screen-top-bar">
+        <button type="button" id="btn-checkin-back" class="btn-nav">
+          Back
+        </button>
+        <h2 class="screen-title">Visitor Check In</h2>
+        <div class="top-bar-placeholder"></div>
+      </div>
+
+      <form id="form-checkin" class="kiosk-form" novalidate>
+        <div id="checkin-validation-error" class="form-error hidden" role="alert"></div>
+
+        <div class="form-group">
+          <label for="checkin-name" class="form-label">Full Name</label>
+          <input 
+            type="text" 
+            id="checkin-name" 
+            name="name" 
+            class="form-input" 
+            placeholder="e.g. Sparky Sun Devil" 
+            required 
+            autocomplete="off"
+            autocorrect="off"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="checkin-asuid" class="form-label">ASU ID or Email</label>
+          <input 
+            type="text" 
+            id="checkin-asuid" 
+            name="asuId_or_email" 
+            class="form-input" 
+            placeholder="10-digit ASU ID or asu.edu email" 
+            required 
+            autocomplete="off"
+            autocapitalize="none"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="checkin-room" class="form-label">Studio / Room</label>
+          <select id="checkin-room" name="room" class="form-select" required>
+            <option value="" disabled selected>Select a studio...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="checkin-purpose" class="form-label">Purpose of Visit</label>
+          <input 
+            type="text" 
+            id="checkin-purpose" 
+            name="purpose" 
+            class="form-input" 
+            placeholder="e.g. Podcasting, Zoom meeting, Video recording" 
+            required 
+            autocomplete="off"
+          >
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="btn-checkin-submit" class="btn-kiosk btn-maroon">
+            Submit Check In
+          </button>
+          <button type="button" id="btn-checkin-cancel" class="btn-kiosk btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- FULL-SCREEN WARNING: MISSED CHECKOUT -->
+    <div id="overlay-missed-warning" class="kiosk-overlay hidden" role="dialog" aria-modal="true">
+      <div class="warning-box">
+        <div class="warning-header">Check-out Reminder</div>
+        <div class="warning-body">
+          <p class="warning-text">
+            You did not check out last time on <strong id="warning-missed-date">[Date]</strong>.
+          </p>
+          <p class="warning-instruction">
+            Please always check out when your appointment is done.
+          </p>
+        </div>
+        <div class="warning-actions">
+          <button type="button" id="btn-warning-understand" class="btn-kiosk btn-gold">
+            I understand
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: DUPLICATE ACTIVE CHECK-IN -->
+    <div id="overlay-duplicate-active" class="kiosk-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-box">
+        <h3 class="modal-title">Already Checked In</h3>
+        <p class="modal-text">
+          You currently have an active check-in for <strong id="duplicate-room-name">Studio</strong> since <strong id="duplicate-checkin-time">Time</strong>.
+        </p>
+        <p class="modal-text">
+          Would you like to check out now instead?
+        </p>
+        <div class="modal-actions">
+          <button type="button" id="btn-duplicate-checkout-now" class="btn-kiosk btn-maroon">
+            Check Out Now
+          </button>
+          <button type="button" id="btn-duplicate-cancel" class="btn-kiosk btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: CHECK OUT -->
+    <section id="screen-checkout" class="kiosk-screen hidden">
+      <div class="screen-top-bar">
+        <button type="button" id="btn-checkout-back" class="btn-nav">
+          Back
+        </button>
+        <h2 class="screen-title">Visitor Check Out</h2>
+        <div class="top-bar-placeholder"></div>
+      </div>
+
+      <div class="checkout-content">
+        <p class="checkout-instruction">Tap your name from the active list below to check out.</p>
+
+        <div class="search-bar-container">
+          <input 
+            type="search" 
+            id="checkout-search-input" 
+            class="form-input search-input" 
+            placeholder="Search by your name, ASU ID/email, or studio..." 
+            autocomplete="off"
+          >
+          <button type="button" id="btn-checkout-clear-search" class="btn-clear-search hidden">
+            Clear
+          </button>
+        </div>
+
+        <div id="active-visitors-container" class="active-visitors-list">
+          <!-- Active visitors loaded dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- MODAL: CHECK OUT INSPECTION & DAMAGE REPORT -->
+    <div id="overlay-checkout-inspect" class="kiosk-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-box inspect-modal">
+        <h3 class="modal-title">Complete Check Out</h3>
+        
+        <div class="inspect-visitor-badge">
+          <div id="inspect-visitor-name" class="inspect-name">Visitor Name</div>
+          <div id="inspect-visitor-meta" class="inspect-meta">Studio &bull; Checked in at 00:00</div>
+        </div>
+
+        <div class="inspect-question-group">
+          <p class="inspect-question">Any damage or issues in the room?</p>
+          <div class="inspect-toggle-buttons">
+            <button type="button" id="btn-damage-no" class="btn-toggle active">
+              No
+            </button>
+            <button type="button" id="btn-damage-yes" class="btn-toggle">
+              Yes
+            </button>
+          </div>
+        </div>
+
+        <div id="damage-notes-field" class="form-group hidden">
+          <label for="checkout-damage-notes" class="form-label">
+            Please describe the damage or issue (required):
+          </label>
+          <textarea 
+            id="checkout-damage-notes" 
+            class="form-textarea" 
+            rows="3" 
+            placeholder="Describe what occurred, equipment condition, or issues encountered..."
+          ></textarea>
+          <div id="damage-notes-error" class="form-error hidden">Please provide a short description of the issue.</div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-checkout-confirm-submit" class="btn-kiosk btn-maroon">
+            Complete Check Out
+          </button>
+          <button type="button" id="btn-checkout-inspect-cancel" class="btn-kiosk btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN: SUCCESS CONFIRMATION -->
+    <div id="overlay-confirmation" class="kiosk-overlay hidden" role="dialog" aria-modal="true">
+      <div class="confirmation-box">
+        <div class="confirmation-badge" id="conf-badge-bar"></div>
+        <h2 id="conf-title" class="confirmation-title">Success</h2>
+        <p id="conf-message" class="confirmation-message">Your visit has been recorded.</p>
+        <div class="confirmation-actions">
+          <button type="button" id="btn-conf-done" class="btn-kiosk btn-maroon">
+            Done
+          </button>
+        </div>
+        <p class="confirmation-subtext">Returning to home screen in <span id="conf-countdown">4</span>s...</p>
+      </div>
+    </div>
+
+    <!-- MODAL: STAFF PIN ENTRY -->
+    <div id="overlay-staff-pin" class="kiosk-overlay hidden" role="dialog" aria-modal="true">
+      <div class="pin-modal-box">
+        <h3 class="pin-modal-title">Staff Access</h3>
+        <p class="pin-modal-subtitle">Enter 4-digit PIN to access lab dashboard</p>
+
+        <div class="pin-display">
+          <span class="pin-dot" id="pin-dot-1"></span>
+          <span class="pin-dot" id="pin-dot-2"></span>
+          <span class="pin-dot" id="pin-dot-3"></span>
+          <span class="pin-dot" id="pin-dot-4"></span>
+        </div>
+
+        <div id="pin-error-message" class="form-error hidden">Incorrect PIN. Please try again.</div>
+
+        <div class="pin-keypad">
+          <button type="button" class="btn-pin-key" data-digit="1">1</button>
+          <button type="button" class="btn-pin-key" data-digit="2">2</button>
+          <button type="button" class="btn-pin-key" data-digit="3">3</button>
+          <button type="button" class="btn-pin-key" data-digit="4">4</button>
+          <button type="button" class="btn-pin-key" data-digit="5">5</button>
+          <button type="button" class="btn-pin-key" data-digit="6">6</button>
+          <button type="button" class="btn-pin-key" data-digit="7">7</button>
+          <button type="button" class="btn-pin-key" data-digit="8">8</button>
+          <button type="button" class="btn-pin-key" data-digit="9">9</button>
+          <button type="button" id="btn-pin-clear" class="btn-pin-key btn-pin-fn">Clear</button>
+          <button type="button" class="btn-pin-key" data-digit="0">0</button>
+          <button type="button" id="btn-pin-cancel" class="btn-pin-key btn-pin-fn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 4: STAFF VIEW -->
+    <section id="screen-staff" class="kiosk-screen hidden">
+      <div class="screen-top-bar staff-top-bar">
+        <div>
+          <h2 class="screen-title">Staff Dashboard</h2>
+          <span class="staff-role-badge">Zoom Innovation Lab Staff</span>
+        </div>
+        <button type="button" id="btn-staff-exit" class="btn-kiosk btn-secondary btn-exit">
+          Exit Staff View
+        </button>
+      </div>
+
+      <!-- Backup Alert Banner (Red if > 7 days or never) -->
+      <div id="staff-backup-banner" class="backup-banner">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- System Status Bar -->
+      <div class="staff-status-bar">
+        <div class="status-item">
+          <span class="status-label">Storage Usage:</span>
+          <span id="staff-storage-info" class="status-value">Calculating...</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Last Backup:</span>
+          <span id="staff-last-backup-text" class="status-value">Checking...</span>
+        </div>
+      </div>
+
+      <!-- Staff Dashboard Tabs / Navigation -->
+      <nav class="staff-nav" aria-label="Staff Sections">
+        <button type="button" class="staff-tab-btn active" data-tab="tab-active">Active Sessions</button>
+        <button type="button" class="staff-tab-btn" data-tab="tab-damage">Damage Reports</button>
+        <button type="button" class="staff-tab-btn" data-tab="tab-offenders">Repeat Offenders</button>
+        <button type="button" class="staff-tab-btn" data-tab="tab-backup">Data Management</button>
+      </nav>
+
+      <!-- TAB 1: ACTIVE SESSIONS -->
+      <div id="tab-active" class="staff-tab-pane active">
+        <div class="tab-pane-header">
+          <h3 class="tab-heading">Live Active Sessions (<span id="staff-active-count">0</span>)</h3>
+        </div>
+        <div id="staff-active-table-container" class="staff-table-wrap">
+          <!-- Active sessions table -->
+        </div>
+      </div>
+
+      <!-- TAB 3: DAMAGE REPORTS LIST -->
+      <div id="tab-damage" class="staff-tab-pane hidden">
+        <div class="tab-pane-header">
+          <h3 class="tab-heading">Damage &amp; Issue Reports (<span id="staff-damage-count">0</span>)</h3>
+        </div>
+        <div id="staff-damage-container" class="damage-list">
+          <!-- Damage reports rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- TAB 4: REPEAT MISSED-CHECKOUT OFFENDERS -->
+      <div id="tab-offenders" class="staff-tab-pane hidden">
+        <div class="tab-pane-header">
+          <h3 class="tab-heading">Repeat Missed-Checkout Offenders</h3>
+          <p class="tab-subtext">Visitors with recorded missed check-outs.</p>
+        </div>
+        <div id="staff-offenders-container" class="staff-table-wrap">
+          <!-- Offenders table rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- TAB 5: DATA EXPORT & IMPORT -->
+      <div id="tab-backup" class="staff-tab-pane hidden">
+        <div class="tab-pane-header">
+          <h3 class="tab-heading">Data Backup &amp; Restore</h3>
+          <p class="tab-subtext">Export lab records to safe offline storage or restore from backup.</p>
+        </div>
+
+        <div class="backup-actions-grid">
+          <div class="backup-card">
+            <h4 class="backup-card-title">Export All Data (CSV)</h4>
+            <p class="backup-card-desc">Download all visit records formatted for Excel or Google Sheets.</p>
+            <button type="button" id="btn-export-csv" class="btn-kiosk btn-maroon">
+              Export as CSV
+            </button>
+          </div>
+
+          <div class="backup-card">
+            <h4 class="backup-card-title">Export Full Backup (JSON)</h4>
+            <p class="backup-card-desc">Download complete database backup including visits, visitor profiles, and metadata.</p>
+            <button type="button" id="btn-export-json" class="btn-kiosk btn-gold">
+              Export as JSON
+            </button>
+          </div>
+
+          <div class="backup-card">
+            <h4 class="backup-card-title">Restore Data from JSON Backup</h4>
+            <p class="backup-card-desc">Restore or merge previous lab records from a JSON export file.</p>
+            <label for="input-restore-file" class="btn-kiosk btn-secondary file-upload-label">
+              Choose Backup File to Restore
+            </label>
+            <input type="file" id="input-restore-file" accept=".json,application/json" class="visually-hidden">
+            <div id="restore-status-message" class="restore-status"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
